@@ -146,7 +146,7 @@ const App = (() => {
         fillColor: '#FF9800',
         fillOpacity: 0.7,
       })
-        .bindPopup(loc.name || new Date(loc.timestamp).toLocaleString())
+        .bindPopup(document.createTextNode(loc.name || new Date(loc.timestamp).toLocaleString()))
         .addTo(map);
       locationMarkers.push(m);
     });
@@ -291,7 +291,7 @@ const App = (() => {
         </div>
         <div class="name-field">
           <input type="text" class="name-input" placeholder="Name (optional)"
-                 value="${loc.name || ''}"
+                 value="${escapeHTML(loc.name || '')}"
                  data-id="${loc.id}">
         </div>
         <div class="location-actions">
@@ -584,10 +584,10 @@ const App = (() => {
           .map(
             (d) => `
         <div class="dup-item">
-          <span class="dup-name">${d.name}</span>
-          <span class="dup-type">${Object.entries(d.tags).map(([k, v]) => `${k}=${v}`).join(', ')}</span>
+          <span class="dup-name">${escapeHTML(d.name)}</span>
+          <span class="dup-type">${escapeHTML(Object.entries(d.tags).map(([k, v]) => `${k}=${v}`).join(', '))}</span>
           <span class="dup-dist">${Math.round(d.distance)}m away</span>
-          <a href="${d.osmURL}" target="_blank" rel="noopener" class="dup-link">View on OSM</a>
+          <a href="${escapeHTML(d.osmURL)}" target="_blank" rel="noopener" class="dup-link">View on OSM</a>
         </div>`
           )
           .join('')
