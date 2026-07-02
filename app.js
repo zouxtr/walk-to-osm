@@ -729,7 +729,20 @@ const App = (() => {
 
   function registerSW() {
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js').catch(console.warn);
+      navigator.serviceWorker.register('sw.js').then((reg) => {
+        // Check for updates every 60 minutes
+        setInterval(() => reg.update(), 60 * 60 * 1000);
+
+        reg.addEventListener('updatefound', () => {
+          const newWorker = reg.installing;
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              // New version available — reload to activate it
+              window.location.reload();
+            }
+          });
+        });
+      }).catch(console.warn);
     }
   }
 
