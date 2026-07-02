@@ -309,6 +309,14 @@ const App = (() => {
             </svg>
             Delete
           </button>
+          <button class="contribute-loc-btn" data-contribute-id="${loc.id}" title="Contribute to OpenStreetMap">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
+              <polyline points="16 6 12 2 8 6"></polyline>
+              <line x1="12" y1="2" x2="12" y2="15"></line>
+            </svg>
+            Contribute
+          </button>
         </div>
       </div>`
       )
@@ -339,6 +347,13 @@ const App = (() => {
         deleteLocation(btn.dataset.deleteId);
       });
     });
+
+    container.querySelectorAll('.contribute-loc-btn').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        contributeToOSM(btn.dataset.contributeId);
+      });
+    });
   }
 
   function deleteLocation(id) {
@@ -356,6 +371,21 @@ const App = (() => {
     renderLocationList();
     renderLocationMarkers();
     showToast('All locations cleared');
+  }
+
+  function contributeToOSM(id) {
+    const locs = getLocations();
+    const loc = locs.find((l) => l.id === id);
+    if (!loc) return;
+
+    const tags = OSM.buildTags({
+      name: loc.name || '',
+      typeString: loc.type || '',
+    });
+
+    const url = OSM.generateIDUrl(loc.lat, loc.lng, tags);
+    window.open(url, '_blank');
+    showToast('Opening iD editor...');
   }
 
   // ── Edit Location ────────────────────────────────────────────
@@ -645,6 +675,7 @@ const App = (() => {
     const btn = document.getElementById('settings-btn');
     const close = document.getElementById('settings-close');
     const radios = document.querySelectorAll('input[name="loggingMode"]');
+    const apiKeyInput = document.getElementById('google-api-key');
 
     if (!panel || !btn || !close) {
       console.warn('Settings elements not found');
@@ -683,6 +714,15 @@ const App = (() => {
         setLoggingMode(e.target.value);
       });
     });
+
+    // Load and save Google API key
+    if (apiKeyInput) {
+      apiKeyInput.value = PlacesAPI.getKey();
+      apiKeyInput.addEventListener('change', (e) => {
+        PlacesAPI.setKey(e.target.value.trim());
+        showToast('API key saved');
+      });
+    }
   }
 
   // ── Service Worker ────────────────────────────────────────────
@@ -711,6 +751,10 @@ const App = (() => {
 
     document.getElementById('log-btn').addEventListener('click', logLocation);
     document.getElementById('locate-btn').addEventListener('click', recenterMap);
+    document.getElementById('locations-btn').addEventListener('click', () => {
+      renderLocationList();
+      showView('list');
+    });
     document.getElementById('match-btn').addEventListener('click', matchLocations);
     document.getElementById('clear-btn').addEventListener('click', clearAllLocations);
     document.getElementById('push-btn').addEventListener('click', pushToOSM);
