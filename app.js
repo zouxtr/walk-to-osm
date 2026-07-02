@@ -6,8 +6,6 @@ const App = (() => {
   let map;
   let userMarker;
   let locationMarkers = [];
-  let reviewQueue = [];
-  let currentReviewIndex = 0;
 
   // ── localStorage helpers ──────────────────────────────────────
 
@@ -504,193 +502,6 @@ const App = (() => {
     showView('list');
   }
 
-  // ── Match with Google Maps ────────────────────────────────────
-
-  async function matchLocations() {
-    const locs = getLocations();
-    if (!locs.length) {
-      showToast('No locations to match');
-      return;
-    }
-
-    if (!PlacesAPI.getKey()) {
-      const key = prompt('Enter your Google Maps API key:');
-      if (!key) return;
-      PlacesAPI.setKey(key);
-    }
-
-    showView('review');
-    reviewQueue = [];
-    currentReviewIndex = 0;
-
-    for (let i = 0; i < locs.length; i++) {
-      const loc = locs[i];
-      const card = {
-        loggedLocation: loc,
-        googleMatch: null,
-        osmDuplicates: [],
-        editedName: loc.name || '',
-        editedType: '',
-        editedLat: loc.lat,
-        editedLng: loc.lng,
-        status: 'pending',
-      };
-
-      // Google Places match
-      try {
-        const results = await PlacesAPI.searchNearby(loc.lat, loc.lng, 50);
-        if (results.length > 0) {
-          const best = results[0];
-          card.googleMatch = best;
-          card.editedName = card.editedName || best.name;
-          const mapping = bestOSMMapping(best.types);
-          card.editedType = mapping ? mapping.display : '';
-        }
-      } catch (err) {
-        console.warn('Google match failed:', err.message);
-      }
-
-      // Overpass duplicate check
-      try {
-        card.osmDuplicates = await OverpassAPI.checkNearby(loc.lat, loc.lng, 50);
-      } catch (err) {
-        console.warn('Overpass check failed:', err.message);
-      }
-
-      reviewQueue.push(card);
-    }
-
-    renderReviewCard();
-  }
-
-  // ── Review Card ───────────────────────────────────────────────
-
-  function renderReviewCard() {
-    if (currentReviewIndex >= reviewQueue.length) {
-      showView('list');
-      renderLocationList();
-      showToast('Review complete!');
-      return;
-    }
-
-    const card = reviewQueue[currentReviewIndex];
-    const counter = document.getElementById('review-counter');
-    counter.textContent = `${currentReviewIndex + 1} of ${reviewQueue.length}`;
-
-    const hasDuplicates = card.osmDuplicates.length > 0;
-    const duplicateHTML = hasDuplicates
-      ? card.osmDuplicates
-          .slice(0, 3)
-          .map(
-            (d) => `
-        <div class="dup-item">
-          <span class="dup-name">${escapeHTML(d.name)}</span>
-          <span class="dup-type">${escapeHTML(Object.entries(d.tags).map(([k, v]) => `${k}=${v}`).join(', '))}</span>
-          <span class="dup-dist">${Math.round(d.distance)}m away</span>
-          <a href="${escapeHTML(d.osmURL)}" target="_blank" rel="noopener" class="dup-link">View on OSM</a>
-        </div>`
-          )
-          .join('')
-      : '';
-
-    document.getElementById('review-card').innerHTML = `
-      <div class="review-section">
-        <h3>Google Maps Match</h3>
-        ${
-          card.googleMatch
-            ? `<a href="${card.googleMatch.googleMapsURI}" target="_blank" rel="noopener" class="google-link">
-                View on Google Maps
-              </a>`
-            : '<p class="no-match">No Google match found</p>'
-          }
-      </div>
-
-      <div class="review-section">
-        <h3>Edit Details</h3>
-        <div class="form-row">
-          <label>Name</label>
-          <input type="text" id="review-name" value="${escapeHTML(card.editedName)}" placeholder="Place name">
-        </div>
-        <div class="form-row">
-          <label>Type (OSM tag)</label>
-          <input type="text" id="review-type" value="${escapeHTML(card.editedType)}" placeholder="e.g. amenity=restaurant">
-        </div>
-        <div class="form-row row-half">
-          <div>
-            <label>Latitude</label>
-            <input type="text" id="review-lat" value="${card.editedLat.toFixed(6)}">
-          </div>
-          <div>
-            <label>Longitude</label>
-            <input type="text" id="review-lng" value="${card.editedLng.toFixed(6)}">
-          </div>
-        </div>
-      </div>
-
-      <div class="review-section">
-        <h3>OSM Duplicate Check</h3>
-        ${
-          hasDuplicates
-            ? `<div class="dup-warning">Possible duplicate found:</div>
-               <div class="dup-list">${duplicateHTML}</div>`
-            : '<p class="no-dup">No existing OSM entry nearby</p>'
-        }
-      </div>
-    `;
-
-    // Sync edits back to card on input
-    document.getElementById('review-name').addEventListener('input', (e) => {
-      card.editedName = e.target.value;
-    });
-    document.getElementById('review-type').addEventListener('input', (e) => {
-      card.editedType = e.target.value;
-    });
-    document.getElementById('review-lat').addEventListener('input', (e) => {
-      const v = parseFloat(e.target.value);
-      if (!isNaN(v)) card.editedLat = v;
-    });
-    document.getElementById('review-lng').addEventListener('input', (e) => {
-      const v = parseFloat(e.target.value);
-      if (!isNaN(v)) card.editedLng = v;
-    });
-  }
-
-  function pushToOSM() {
-    const card = reviewQueue[currentReviewIndex];
-    const tags = OSM.buildTags({
-      name: card.editedName,
-      typeString: card.editedType,
-    });
-
-    const tagsText = OSM.formatTagsForDisplay(tags);
-    const presetId = OSM.typeToPresetId(card.editedType);
-
-    const url = OSM.generateIDUrl(card.editedLat, card.editedLng, {
-      comment: 'Adding POI from walk log',
-      hashtags: 'walklog',
-      source: 'walk-log',
-      preset: presetId || undefined,
-    });
-
-    const message = `iD editor will open centered on this location.\n\n` +
-      `Click the "Point" tool (or press P) to add a new feature.\n\n` +
-      `Apply these tags:\n${tagsText}\n\n` +
-      `Click Save when done.`;
-
-    if (confirm(message)) {
-      window.open(url, '_blank');
-      card.status = 'pushed';
-    }
-    currentReviewIndex++;
-    renderReviewCard();
-  }
-
-  function skipReview() {
-    reviewQueue[currentReviewIndex].status = 'skipped';
-    currentReviewIndex++;
-    renderReviewCard();
-  }
-
   function escapeHTML(str) {
     return (str || '').replace(/[&<>"']/g, (c) => {
       const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
@@ -729,7 +540,6 @@ const App = (() => {
     const btn = document.getElementById('settings-btn');
     const close = document.getElementById('settings-close');
     const radios = document.querySelectorAll('input[name="loggingMode"]');
-    const apiKeyInput = document.getElementById('google-api-key');
 
     if (!panel || !btn || !close) {
       console.warn('Settings elements not found');
@@ -768,15 +578,6 @@ const App = (() => {
         setLoggingMode(e.target.value);
       });
     });
-
-    // Load and save Google API key
-    if (apiKeyInput) {
-      apiKeyInput.value = PlacesAPI.getKey();
-      apiKeyInput.addEventListener('change', (e) => {
-        PlacesAPI.setKey(e.target.value.trim());
-        showToast('API key saved');
-      });
-    }
   }
 
   // ── Service Worker ────────────────────────────────────────────
@@ -828,10 +629,7 @@ const App = (() => {
       renderLocationList();
       showView('list');
     });
-    document.getElementById('match-btn').addEventListener('click', matchLocations);
     document.getElementById('clear-btn').addEventListener('click', clearAllLocations);
-    document.getElementById('push-btn').addEventListener('click', pushToOSM);
-    document.getElementById('skip-btn').addEventListener('click', skipReview);
     document.getElementById('edit-save-btn').addEventListener('click', saveEditedLocation);
     document.getElementById('edit-delete-btn').addEventListener('click', deleteFromEdit);
 
@@ -841,11 +639,6 @@ const App = (() => {
         showView(btn.dataset.view);
         if (btn.dataset.view === 'map') renderLocationMarkers();
       }
-    });
-
-    document.getElementById('view-review').addEventListener('click', (e) => {
-      const btn = e.target.closest('[data-view]');
-      if (btn) showView(btn.dataset.view);
     });
 
     document.getElementById('view-edit').addEventListener('click', (e) => {
