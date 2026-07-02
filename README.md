@@ -14,7 +14,6 @@ Log GPS locations on walks, match them against Google Maps places, check for Ope
 ## How It Works
 
 1. **Log** — Walk around and tap "Log Location" to save GPS coordinates
-2. **Review** — Match your logged locations against Google Maps to get place names and types(NEW - not tested)
 3. **Contribute** — Open the iD editor centered on the location with suggested tags, then save directly to OSM
 
 ### Google Maps API Key
