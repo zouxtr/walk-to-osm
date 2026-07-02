@@ -183,36 +183,91 @@ const App = (() => {
       return;
     }
 
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const { latitude, longitude } = pos.coords;
-        const entry = {
-          id: uuid(),
-          lat: latitude,
-          lng: longitude,
-          timestamp: new Date().toISOString(),
-          name: null,
-        };
+    showGeoStatus('Getting accurate location...');
 
-        const locs = getLocations();
-        locs.push(entry);
-        saveLocations(locs);
-        renderLocationMarkers();
+    // Take multiple readings and average for better accuracy
+    const readings = [];
+    const NEEDED = 3;
+    let attempts = 0;
+    const MAX_ATTEMPTS = 5;
 
-        showToast('Location saved!');
+    function takeReading() {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          readings.push({ lat: pos.coords.latitude, lng: pos.coords.longitude, acc: pos.coords.accuracy });
+          attempts++;
 
-        if (getLoggingMode() === 'withName') {
-          renderLocationList();
-          showView('list');
-          setTimeout(() => {
-            const input = document.querySelector(`[data-loc-id="${entry.id}"] .name-input`);
-            if (input) input.focus();
-          }, 100);
-        }
-      },
-      () => showToast('Could not get location'),
-      { enableHighAccuracy: true, timeout: 10000 }
-    );
+          if (readings.length >= NEEDED) {
+            saveFromReadings(readings);
+          } else if (attempts < MAX_ATTEMPTS) {
+            showGeoStatus(`Getting location... (${readings.length}/${NEEDED})`);
+            takeReading();
+          } else {
+            saveFromReadings(readings);
+          }
+        },
+        (err) => {
+          attempts++;
+          if (attempts < MAX_ATTEMPTS && readings.length < NEEDED) {
+            takeReading();
+          } else if (readings.length > 0) {
+            saveFromReadings(readings);
+          } else {
+            hideGeoStatus();
+            if (err.code === 1) {
+              showToast('Location access denied');
+            } else {
+              showToast('Could not get location');
+            }
+          }
+        },
+        { enableHighAccuracy: true, timeout: 8000 }
+      );
+    }
+
+    takeReading();
+  }
+
+  function saveFromReadings(readings) {
+    // Weight by accuracy (lower accuracy number = better)
+    let totalWeight = 0;
+    let weightedLat = 0;
+    let weightedLng = 0;
+
+    readings.forEach((r) => {
+      const weight = 1 / (r.acc || 1);
+      totalWeight += weight;
+      weightedLat += r.lat * weight;
+      weightedLng += r.lng * weight;
+    });
+
+    const latitude = weightedLat / totalWeight;
+    const longitude = weightedLng / totalWeight;
+
+    const entry = {
+      id: uuid(),
+      lat: latitude,
+      lng: longitude,
+      timestamp: new Date().toISOString(),
+      name: null,
+    };
+
+    const locs = getLocations();
+    locs.push(entry);
+    saveLocations(locs);
+    renderLocationMarkers();
+
+    hideGeoStatus();
+    showToast('Location saved!');
+
+    if (getLoggingMode() === 'withName') {
+      renderLocationList();
+      showView('list');
+      setTimeout(() => {
+        const input = document.querySelector(`[data-loc-id="${entry.id}"] .name-input`);
+        if (input) input.focus();
+      }, 100);
+    }
   }
 
   // ── Location List ─────────────────────────────────────────────
@@ -239,6 +294,22 @@ const App = (() => {
                  value="${loc.name || ''}"
                  data-id="${loc.id}">
         </div>
+        <div class="location-actions">
+          <button class="edit-loc-btn" data-edit-id="${loc.id}" title="Edit location">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+            </svg>
+            Edit
+          </button>
+          <button class="delete-loc-btn" data-delete-id="${loc.id}" title="Delete location">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
+            Delete
+          </button>
+        </div>
       </div>`
       )
       .join('');
@@ -254,6 +325,29 @@ const App = (() => {
         }
       });
     });
+
+    container.querySelectorAll('.edit-loc-btn').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openEditLocation(btn.dataset.editId);
+      });
+    });
+
+    container.querySelectorAll('.delete-loc-btn').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        deleteLocation(btn.dataset.deleteId);
+      });
+    });
+  }
+
+  function deleteLocation(id) {
+    if (!confirm('Delete this location?')) return;
+    const locs = getLocations().filter((l) => l.id !== id);
+    saveLocations(locs);
+    renderLocationList();
+    renderLocationMarkers();
+    showToast('Location deleted');
   }
 
   function clearAllLocations() {
@@ -262,6 +356,107 @@ const App = (() => {
     renderLocationList();
     renderLocationMarkers();
     showToast('All locations cleared');
+  }
+
+  // ── Edit Location ────────────────────────────────────────────
+
+  let editMap;
+  let editMarker;
+  let editingLocId = null;
+
+  function openEditLocation(id) {
+    const locs = getLocations();
+    const loc = locs.find((l) => l.id === id);
+    if (!loc) return;
+
+    editingLocId = id;
+    showView('edit');
+
+    document.getElementById('edit-name').value = loc.name || '';
+    document.getElementById('edit-lat').value = loc.lat.toFixed(6);
+    document.getElementById('edit-lng').value = loc.lng.toFixed(6);
+
+    // Destroy previous edit map if exists
+    if (editMap) {
+      editMap.remove();
+      editMap = null;
+    }
+
+    // Small delay so the container is visible before Leaflet measures it
+    setTimeout(() => {
+      editMap = L.map('edit-map').setView([loc.lat, loc.lng], 18);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors',
+        maxZoom: 19,
+      }).addTo(editMap);
+
+      editMarker = L.marker([loc.lat, loc.lng], { draggable: true })
+        .addTo(editMap);
+
+      // When marker is dragged, update inputs
+      editMarker.on('dragend', () => {
+        const pos = editMarker.getLatLng();
+        document.getElementById('edit-lat').value = pos.lat.toFixed(6);
+        document.getElementById('edit-lng').value = pos.lng.toFixed(6);
+      });
+
+      // When map is clicked, move marker
+      editMap.on('click', (e) => {
+        editMarker.setLatLng(e.latlng);
+        document.getElementById('edit-lat').value = e.latlng.lat.toFixed(6);
+        document.getElementById('edit-lng').value = e.latlng.lng.toFixed(6);
+      });
+
+      // When lat/lng inputs change, move marker
+      const latInput = document.getElementById('edit-lat');
+      const lngInput = document.getElementById('edit-lng');
+
+      const syncMarkerFromInputs = () => {
+        const lat = parseFloat(latInput.value);
+        const lng = parseFloat(lngInput.value);
+        if (!isNaN(lat) && !isNaN(lng)) {
+          editMarker.setLatLng([lat, lng]);
+        }
+      };
+
+      latInput.addEventListener('input', syncMarkerFromInputs);
+      lngInput.addEventListener('input', syncMarkerFromInputs);
+    }, 100);
+  }
+
+  function saveEditedLocation() {
+    if (!editingLocId) return;
+
+    const lat = parseFloat(document.getElementById('edit-lat').value);
+    const lng = parseFloat(document.getElementById('edit-lng').value);
+    const name = document.getElementById('edit-name').value.trim() || null;
+
+    if (isNaN(lat) || isNaN(lng)) {
+      showToast('Invalid coordinates');
+      return;
+    }
+
+    const locs = getLocations();
+    const loc = locs.find((l) => l.id === editingLocId);
+    if (loc) {
+      loc.lat = lat;
+      loc.lng = lng;
+      loc.name = name;
+      saveLocations(locs);
+      renderLocationList();
+      renderLocationMarkers();
+      showToast('Location updated');
+    }
+
+    editingLocId = null;
+    showView('list');
+  }
+
+  function deleteFromEdit() {
+    if (!editingLocId) return;
+    deleteLocation(editingLocId);
+    editingLocId = null;
+    showView('list');
   }
 
   // ── Match with Google Maps ────────────────────────────────────
@@ -520,6 +715,8 @@ const App = (() => {
     document.getElementById('clear-btn').addEventListener('click', clearAllLocations);
     document.getElementById('push-btn').addEventListener('click', pushToOSM);
     document.getElementById('skip-btn').addEventListener('click', skipReview);
+    document.getElementById('edit-save-btn').addEventListener('click', saveEditedLocation);
+    document.getElementById('edit-delete-btn').addEventListener('click', deleteFromEdit);
 
     document.getElementById('view-list').addEventListener('click', (e) => {
       const btn = e.target.closest('[data-view]');
@@ -532,6 +729,14 @@ const App = (() => {
     document.getElementById('view-review').addEventListener('click', (e) => {
       const btn = e.target.closest('[data-view]');
       if (btn) showView(btn.dataset.view);
+    });
+
+    document.getElementById('view-edit').addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-view]');
+      if (btn) {
+        showView(btn.dataset.view);
+        if (btn.dataset.view === 'map') renderLocationMarkers();
+      }
     });
 
     // Bottom nav: tap map area to go to list

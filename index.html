@@ -105,6 +105,40 @@
           <button id="skip-btn" class="secondary-btn">Skip</button>
         </div>
       </section>
+
+      <!-- Screen 4: Edit Location -->
+      <section id="view-edit" class="view hidden">
+        <div class="view-header">
+          <button class="back-btn" data-view="list" aria-label="Back to list">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M19 12H5M12 19l-7-7 7-7"></path>
+            </svg>
+          </button>
+          <h2>Edit Location</h2>
+        </div>
+        <div id="edit-map" class="edit-map"></div>
+        <div class="edit-fields">
+          <div class="form-row">
+            <label>Name</label>
+            <input type="text" id="edit-name" placeholder="Place name">
+          </div>
+          <div class="form-row row-half">
+            <div>
+              <label>Latitude</label>
+              <input type="text" id="edit-lat">
+            </div>
+            <div>
+              <label>Longitude</label>
+              <input type="text" id="edit-lng">
+            </div>
+          </div>
+          <p class="edit-hint">Drag the pin on the map or edit fields above</p>
+        </div>
+        <div class="edit-actions">
+          <button id="edit-save-btn" class="primary-btn">Save Changes</button>
+          <button id="edit-delete-btn" class="danger-btn">Delete</button>
+        </div>
+      </section>
     </main>
 
     <!-- Toast notifications -->
