@@ -7,7 +7,6 @@ Log GPS locations on walks, match them against Google Maps places, check for Ope
 ## Features
 
 - **GPS Location Logging** — Tap to save your current location with high accuracy (multiple readings averaged)
-- **Google Maps Matching** — Automatically finds nearby places using Google Places API (New - not tested)
 - **OpenStreetMap Contribution** — Opens the iD editor pre-centered on your location with suggested tags
 - **PWA** — Installable on mobile and desktop, works offline (app shell cached via Service Worker)
 - **No Build Step** — Pure vanilla JavaScript, deploys directly to GitHub Pages
