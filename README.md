@@ -2,13 +2,12 @@
 
 Log GPS locations on walks and contribute them to OpenStreetMap — all from your browser.
 
-**[Live Demo](https://0nyx-dev.github.io/website/)**
-
+**[Live Demo](https://zouxtr.github.io/walk-to-osm/)**
+* i made the app and most of thies readme.md file with AI, sorry for the slop
 ## Features
 
 - **GPS Location Logging** — Tap to save your current location with high accuracy (multiple readings averaged)
 - **OpenStreetMap Contribution** — Opens the iD editor pre-centered on your location with suggested tags
-- **Dark Mode** — Toggle between light and dark themes
 - **PWA** — Installable on mobile and desktop, works offline (app shell cached via Service Worker)
 - **No Build Step** — Pure vanilla JavaScript, deploys directly to GitHub Pages
 
@@ -17,14 +16,6 @@ Log GPS locations on walks and contribute them to OpenStreetMap — all from you
 1. **Log** — Walk around and tap "Log Location" to save GPS coordinates
 2. **Edit** — Add a name to each location, adjust coordinates by dragging the map pin
 3. **Contribute** — Open the iD editor centered on the location with suggested tags, then save directly to OSM
-
-## Setup
-
-### GitHub Pages Deployment
-
-1. Fork or clone this repository
-2. Enable GitHub Pages in **Settings → Pages → Source: Deploy from branch → main**
-3. The app will be live at `https://<your-username>.github.io/<repo-name>/`
 
 ### OpenStreetMap Account
 
@@ -76,6 +67,3 @@ New deployments automatically invalidate old caches and trigger a page reload.
 
 Contributions are welcome! Feel free to open issues or submit pull requests.
 
-## License
-
-ISC
