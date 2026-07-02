@@ -2,32 +2,21 @@
 
 Log GPS locations on walks, match them against Google Maps places, check for OpenStreetMap duplicates, and contribute new places to OSM — all from your browser.
 
-**[Live Demo](https://0nyx-dev.github.io/website/)**
-
+**[Live Demo](https://zouxtr.github.io/walk-to-osm/)**
+* i vibecoded this app and most of this readme.md file, i am sorry for the slop
 ## Features
 
 - **GPS Location Logging** — Tap to save your current location with high accuracy (multiple readings averaged)
-- **Google Maps Matching** — Automatically finds nearby places using Google Places API (New)
-- **OSM Duplicate Check** — Queries Overpass API to detect existing OpenStreetMap entries before you contribute
+- **Google Maps Matching** — Automatically finds nearby places using Google Places API (New - not tested)
 - **OpenStreetMap Contribution** — Opens the iD editor pre-centered on your location with suggested tags
-- **Dark Mode** — Toggle between light and dark themes
 - **PWA** — Installable on mobile and desktop, works offline (app shell cached via Service Worker)
 - **No Build Step** — Pure vanilla JavaScript, deploys directly to GitHub Pages
 
 ## How It Works
 
 1. **Log** — Walk around and tap "Log Location" to save GPS coordinates
-2. **Review** — Match your logged locations against Google Maps to get place names and types
-3. **Check** — The app checks OpenStreetMap via Overpass API for nearby duplicates
-4. **Contribute** — Open the iD editor centered on the location with suggested tags, then save directly to OSM
-
-## Setup
-
-### GitHub Pages Deployment
-
-1. Fork or clone this repository
-2. Enable GitHub Pages in **Settings → Pages → Source: Deploy from branch → main**
-3. The app will be live at `https://<your-username>.github.io/<repo-name>/`
+2. **Review** — Match your logged locations against Google Maps to get place names and types(NEW - not tested)
+3. **Contribute** — Open the iD editor centered on the location with suggested tags, then save directly to OSM
 
 ### Google Maps API Key
 
@@ -82,7 +71,7 @@ walk-to-osm/
 | API requests | Network-first |
 | Static assets (icons, Leaflet) | Cache-first |
 
-New deployments automatically invalidate old caches and trigger a page reload.
+New deployments automatically invalidate old caches and trigger a page reload.(may not work)
 
 ## Privacy
 
