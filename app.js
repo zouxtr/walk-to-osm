@@ -383,9 +383,24 @@ const App = (() => {
       typeString: loc.type || '',
     });
 
-    const url = OSM.generateIDUrl(loc.lat, loc.lng, tags);
-    window.open(url, '_blank');
-    showToast('Opening iD editor...');
+    const tagsText = OSM.formatTagsForDisplay(tags);
+    const presetId = OSM.typeToPresetId(loc.type || '');
+
+    const url = OSM.generateIDUrl(loc.lat, loc.lng, {
+      comment: 'Adding POI from walk log',
+      hashtags: 'walklog',
+      source: 'walk-log',
+      preset: presetId || undefined,
+    });
+
+    const message = `iD editor will open centered on this location.\n\n` +
+      `Click the "Point" tool (or press P) to add a new feature.\n\n` +
+      `Apply these tags:\n${tagsText}\n\n` +
+      `Click Save when done.`;
+
+    if (confirm(message)) {
+      window.open(url, '_blank');
+    }
   }
 
   // ── Edit Location ────────────────────────────────────────────
@@ -647,10 +662,25 @@ const App = (() => {
       typeString: card.editedType,
     });
 
-    const url = OSM.generateIDUrl(card.editedLat, card.editedLng, tags);
-    window.open(url, '_blank');
+    const tagsText = OSM.formatTagsForDisplay(tags);
+    const presetId = OSM.typeToPresetId(card.editedType);
 
-    card.status = 'pushed';
+    const url = OSM.generateIDUrl(card.editedLat, card.editedLng, {
+      comment: 'Adding POI from walk log',
+      hashtags: 'walklog',
+      source: 'walk-log',
+      preset: presetId || undefined,
+    });
+
+    const message = `iD editor will open centered on this location.\n\n` +
+      `Click the "Point" tool (or press P) to add a new feature.\n\n` +
+      `Apply these tags:\n${tagsText}\n\n` +
+      `Click Save when done.`;
+
+    if (confirm(message)) {
+      window.open(url, '_blank');
+      card.status = 'pushed';
+    }
     currentReviewIndex++;
     renderReviewCard();
   }
