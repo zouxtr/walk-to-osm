@@ -83,7 +83,3 @@ New deployments automatically invalidate old caches and trigger a page reload.(m
 ## Contributing
 
 Contributions are welcome! Feel free to open issues or submit pull requests.
-
-## License
-
-ISC
