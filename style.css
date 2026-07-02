@@ -15,6 +15,15 @@
   --shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
+[data-theme="dark"] {
+  --bg: #121212;
+  --card: #1e1e1e;
+  --text: #e0e0e0;
+  --text-muted: #9e9e9e;
+  --border: #333;
+  --shadow: 0 2px 8px rgba(0,0,0,0.4);
+}
+
 html, body {
   height: 100%;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -511,6 +520,64 @@ html, body {
   white-space: nowrap;
 }
 .toast.hidden { opacity: 0; pointer-events: none; }
+
+[data-theme="dark"] .toast {
+  background: #e0e0e0;
+  color: #121212;
+}
+
+/* ── Theme Toggle ─────────────────────────────────────────── */
+#theme-btn {
+  position: relative;
+}
+
+/* ── Dark mode overrides ──────────────────────────────────── */
+[data-theme="dark"] #geo-status {
+  background: #333;
+  color: #ffc107;
+}
+
+[data-theme="dark"] .log-btn {
+  box-shadow: 0 4px 16px rgba(76,175,80,0.3);
+}
+
+[data-theme="dark"] .locate-btn {
+  background: var(--card);
+  color: var(--text);
+}
+
+[data-theme="dark"] .locate-btn:hover {
+  background: var(--border);
+}
+
+[data-theme="dark"] .radio-option {
+  border-color: var(--border);
+}
+
+[data-theme="dark"] .dup-item {
+  background: #2a2a2a;
+}
+
+[data-theme="dark"] .google-link,
+[data-theme="dark"] .dup-link {
+  color: #8ab4f8;
+}
+
+[data-theme="dark"] input[type="text"],
+[data-theme="dark"] .settings-input {
+  background: #2a2a2a;
+  color: var(--text);
+  border-color: var(--border);
+}
+
+[data-theme="dark"] input[type="text"]:focus,
+[data-theme="dark"] .settings-input:focus {
+  border-color: var(--green);
+}
+
+[data-theme="dark"] .leaflet-container {
+  background: #1a1a1a;
+}
 
 /* ── PWA standalone ───────────────────────────────────────── */
 @media (display-mode: standalone) {

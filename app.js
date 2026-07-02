@@ -700,6 +700,30 @@ const App = (() => {
 
   // ── Settings ──────────────────────────────────────────────────
 
+  function getTheme() {
+    return localStorage.getItem('theme') || 'light';
+  }
+
+  function setTheme(theme) {
+    localStorage.setItem('theme', theme);
+    document.documentElement.setAttribute('data-theme', theme);
+    updateThemeIcon(theme);
+  }
+
+  function updateThemeIcon(theme) {
+    const sun = document.querySelector('.icon-sun');
+    const moon = document.querySelector('.icon-moon');
+    if (sun && moon) {
+      sun.style.display = theme === 'dark' ? 'none' : 'block';
+      moon.style.display = theme === 'dark' ? 'block' : 'none';
+    }
+  }
+
+  function toggleTheme() {
+    const current = getTheme();
+    setTheme(current === 'dark' ? 'light' : 'dark');
+  }
+
   function initSettings() {
     const panel = document.getElementById('settings-panel');
     const btn = document.getElementById('settings-btn');
@@ -780,6 +804,12 @@ const App = (() => {
 
   function init() {
     registerSW();
+
+    // Apply saved theme immediately
+    setTheme(getTheme());
+
+    // Theme toggle
+    document.getElementById('theme-btn').addEventListener('click', toggleTheme);
 
     // initMap must not block other init — wrap in try-catch
     try {
